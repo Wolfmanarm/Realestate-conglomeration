@@ -4,12 +4,17 @@
   "description": "Worldwide homes-for-sale listings, all priced in USD. Node + Express + PostgreSQL, deployable on Railway.",
   "main": "src/server.js",
   "type": "commonjs",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node src/server.js",
     "migrate": "node src/migrate.js",
     "seed": "node src/seed.js",
-    "rates": "node src/rates.js"
+    "rates": "node src/rates.js",
+    "import:reso": "node src/import-reso.js",
+    "import:file": "node src/import-file.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "compression": "^1.7.5",

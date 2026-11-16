@@ -1,0 +1,24 @@
+{
+  "value": [
+    {
+      "ListingKey": "3yd-ABC-1003",
+      "StandardStatus": "Closed",
+      "PropertyType": "Residential",
+      "PropertySubType": "Townhouse",
+      "ListPrice": 410000,
+      "BedroomsTotal": 3,
+      "BathroomsTotalDecimal": 2.5,
+      "City": "Meridian",
+      "StateOrProvince": "ID",
+      "ModificationTimestamp": "2026-11-14T19:45:00Z"
+    },
+    {
+      "ListingKey": "3yd-ABC-1004",
+      "StandardStatus": "Active",
+      "PropertyType": "Residential",
+      "City": "Nampa",
+      "StateOrProvince": "ID",
+      "ModificationTimestamp": "2026-11-13T10:00:00Z"
+    }
+  ]
+}

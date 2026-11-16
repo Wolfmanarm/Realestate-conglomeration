@@ -80,6 +80,17 @@ app.post('/api/admin/refresh-rates', requireAdmin, wrap(async (req, res) => {
   res.json(await refreshRates());
 }));
 
+app.post('/api/admin/import/reso', requireAdmin, wrap(async (req, res) => {
+  const { syncReso } = require('./import-reso');
+  const r = await syncReso({ full: req.query.full === 'true' });
+  res.json({ ...r, newest: r.newest || null });
+}));
+
+app.get('/api/admin/import-runs', requireAdmin, wrap(async (req, res) => {
+  const { rows } = await pool.query('SELECT * FROM import_runs ORDER BY started_at DESC LIMIT 50');
+  res.json(rows);
+}));
+
 app.delete('/api/admin/sample-listings', requireAdmin, wrap(async (req, res) => {
   const { rowCount } = await pool.query('DELETE FROM listings WHERE is_sample = true');
   res.json({ deleted: rowCount });
@@ -109,6 +120,15 @@ async function start() {
   }
   setInterval(() => refreshRates().catch((e) => console.error('rate refresh failed', e)),
     RATES_REFRESH_HOURS * 3600 * 1000).unref();
+
+  const resoMinutes = Number(process.env.RESO_SYNC_MINUTES || 0);
+  if (resoMinutes > 0 && require('./importers/reso').isConfigured()) {
+    const { syncReso } = require('./import-reso');
+    const run = () => syncReso().catch((e) => console.error('RESO sync failed:', e.message));
+    setTimeout(run, 10000).unref();
+    setInterval(run, resoMinutes * 60 * 1000).unref();
+    console.log(`RESO sync scheduled every ${resoMinutes} minutes.`);
+  }
 
   const server = app.listen(PORT, () => console.log(`Listening on :${PORT}`));
   const shutdown = () => server.close(() => pool.end().then(() => process.exit(0)));

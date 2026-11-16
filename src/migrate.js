@@ -42,6 +42,21 @@ CREATE INDEX IF NOT EXISTS listings_status_price_usd_idx ON listings (status, pr
 CREATE INDEX IF NOT EXISTS listings_country_idx ON listings (country_code);
 CREATE INDEX IF NOT EXISTS listings_listed_at_idx ON listings (listed_at DESC);
 CREATE INDEX IF NOT EXISTS listings_currency_idx ON listings (currency);
+
+-- One row per feed import, used for incremental sync and troubleshooting.
+CREATE TABLE IF NOT EXISTS import_runs (
+  id               BIGSERIAL PRIMARY KEY,
+  source           TEXT NOT NULL,
+  started_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finished_at      TIMESTAMPTZ,
+  ok               BOOLEAN,
+  newest_modified  TIMESTAMPTZ,
+  records_seen     INTEGER,
+  upserted         INTEGER,
+  rejected         INTEGER,
+  error            TEXT
+);
+CREATE INDEX IF NOT EXISTS import_runs_source_idx ON import_runs (source, started_at DESC);
 `;
 
 async function migrate() {

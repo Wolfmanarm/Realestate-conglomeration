@@ -37,9 +37,56 @@ npm start              # http://localhost:3000
 ```
 
 ## Loading real listings
-No single free, public API covers every home for sale in the world. Real listings come from
-MLS/IDX feeds (US/Canada), portal partner APIs (Rightmove, Idealista, Zillow, Domain and so on,
-which usually require agreements), or brokerage feeds. Map each feed to this format and POST it:
+No single dataset holds every home for sale on Earth. Real listings come through licensed channels:
+- MLS feeds in the US and Canada
+- Developer programs from national property websites, which usually need an application or agreement
+- Paid data providers
+- Brokerages' own feeds
+
+Scraping sites like Zillow, Rightmove or Idealista breaks their terms, and their photos are
+copyrighted, so this project doesn't do it.
+
+There are three ways to bring listings in. Every listing must have a currency code, and its price
+is converted to USD automatically.
+
+### 1. MLS feeds through the RESO Web API (US and Canada)
+`src/importers/reso.js` reads the industry-standard RESO Web API (OData) and maps standard fields
+into the site's format, including `ListingKey`, `ListPrice`, `StandardStatus`, `BedroomsTotal`,
+`LivingArea`, `Latitude`/`Longitude` and `Media`. To get access, you need an MLS data license
+through a sponsoring broker, or an IDX/data vendor account.
+
+> **Status:** tested against a local mock RESO server (`test/fixtures`), **not yet against a live MLS**.
+> MLSs differ in which fields they fill in and which `$expand` options they support, so run it once
+> by hand and check the import log before scheduling it.
+
+Set these variables on Railway:
+
+| Variable | Purpose |
+|---|---|
+| `RESO_BASE_URL` | OData root, e.g. `https://api.yourmls.com/odata` |
+| `RESO_TOKEN` | Static bearer token, **or** set the next three instead |
+| `RESO_TOKEN_URL`, `RESO_CLIENT_ID`, `RESO_CLIENT_SECRET` (`RESO_SCOPE`) | OAuth2 client credentials |
+| `RESO_SOURCE` | Label stored on the listings (default `reso`); use one label per feed |
+| `RESO_CURRENCY` / `RESO_DEFAULT_COUNTRY` | Defaults `USD` / `US`; use `CAD` / `CA` for Canadian boards |
+| `RESO_EXTRA_FILTER` | e.g. `PropertyType eq 'Residential'` to import homes only |
+| `RESO_EXPAND_MEDIA` | `true` to fetch photos with `$expand=Media`, if your feed supports it |
+| `RESO_LISTING_URL_TEMPLATE` | e.g. `https://yourbrokerage.com/listing/{ListingKey}` |
+| `RESO_SYNC_MINUTES` | e.g. `60` to sync automatically from the web service |
+
+- The first run imports active listings.
+- Later runs fetch only records changed since the last successful run, so a listing that goes pending, sold or withdrawn drops off the site.
+- To run a sync by hand, use `npm run import:reso`, or `npm run import:reso -- --full` to re-pull everything.
+- You can also call `POST /api/admin/import/reso` or `POST /api/admin/import/reso?full=true`.
+- Each run is logged in the `import_runs` table, which you can see at `GET /api/admin/import-runs`.
+
+### 2. CSV or JSON files
+```bash
+npm run import:file -- listings.csv --source=my-broker
+```
+Column names are the same as the API fields below. Rows that fail validation are reported and skipped.
+
+### 3. Import API
+Map a feed to this format and POST it:
 
 ```bash
 curl -X POST https://<your-app>.up.railway.app/api/admin/listings \

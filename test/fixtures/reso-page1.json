@@ -1,0 +1,54 @@
+{
+  "@odata.context": "https://example-mls.test/odata/$metadata#Property",
+  "value": [
+    {
+      "ListingKey": "3yd-ABC-1001",
+      "ListingId": "1001",
+      "StandardStatus": "Active",
+      "PropertyType": "Residential",
+      "PropertySubType": "Single Family Residence",
+      "ListPrice": 549000,
+      "BedroomsTotal": 4,
+      "BathroomsTotalInteger": 3,
+      "LivingArea": 2150,
+      "LivingAreaUnits": "Square Feet",
+      "LotSizeAcres": 0.25,
+      "YearBuilt": 1998,
+      "StreetNumber": "1420",
+      "StreetName": "Maple",
+      "StreetSuffix": "Ave",
+      "City": "Boise",
+      "StateOrProvince": "ID",
+      "PostalCode": "83702",
+      "Country": "US",
+      "Latitude": 43.615,
+      "Longitude": -116.2023,
+      "PublicRemarks": "Updated family home near the greenbelt.",
+      "OnMarketTimestamp": "2026-11-01T15:00:00Z",
+      "ModificationTimestamp": "2026-11-10T12:00:00Z",
+      "Media": [
+        { "MediaURL": "https://media.example-mls.test/1001/2.jpg", "Order": 2, "MediaCategory": "Photo" },
+        { "MediaURL": "https://media.example-mls.test/1001/1.jpg", "Order": 1, "MediaCategory": "Photo" }
+      ]
+    },
+    {
+      "ListingKey": "3yd-ABC-1002",
+      "StandardStatus": "Active",
+      "PropertyType": "Residential",
+      "PropertySubType": "Condominium",
+      "ListPrice": 315000,
+      "BedroomsTotal": 2,
+      "BathroomsFull": 1,
+      "BathroomsHalf": 1,
+      "LivingArea": 95,
+      "LivingAreaUnits": "Square Meters",
+      "UnparsedAddress": "88 River St Unit 4, Boise, ID 83702",
+      "City": "Boise",
+      "StateOrProvince": "ID",
+      "Latitude": 43.61,
+      "Longitude": -116.2,
+      "ModificationTimestamp": "2026-11-12T08:30:00Z"
+    }
+  ],
+  "@odata.nextLink": "__BASE__/Property?$skiptoken=page2"
+}

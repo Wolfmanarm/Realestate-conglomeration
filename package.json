@@ -1,0 +1,19 @@
+{
+  "name": "realestate-conglomeration",
+  "version": "1.0.0",
+  "description": "Worldwide homes-for-sale listings, all priced in USD. Node + Express + PostgreSQL, deployable on Railway.",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node src/server.js",
+    "migrate": "node src/migrate.js",
+    "seed": "node src/seed.js",
+    "rates": "node src/rates.js"
+  },
+  "dependencies": {
+    "compression": "^1.7.5",
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  }
+}

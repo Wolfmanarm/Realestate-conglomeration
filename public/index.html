@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Globe Homes — Houses for sale worldwide, in USD</title>
+  <meta name="description" content="Browse homes for sale in every country, with every price converted to US dollars at live exchange rates.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%230f766e' d='M12 3 2 11h3v9h5v-6h4v6h5v-9h3z'/></svg>">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="/">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 11h3v9h5v-6h4v6h5v-9h3z"/></svg>
+        Globe Homes
+      </a>
+      <p class="tagline" id="tagline">Homes for sale worldwide · every price in USD</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <h1>Find a home anywhere on Earth</h1>
+      <p id="hero-stats" class="muted">Loading listings…</p>
+    </section>
+
+    <form id="filters" class="filters" autocomplete="off">
+      <label class="f-q">
+        <span>Search</span>
+        <input type="search" name="q" placeholder="City, region, country or keyword">
+      </label>
+      <label>
+        <span>Country</span>
+        <select name="country"><option value="">All countries</option></select>
+      </label>
+      <label>
+        <span>Type</span>
+        <select name="type"><option value="">Any type</option></select>
+      </label>
+      <label>
+        <span>Min price (USD)</span>
+        <input type="number" name="min_price" min="0" step="10000" placeholder="No min" inputmode="numeric">
+      </label>
+      <label>
+        <span>Max price (USD)</span>
+        <input type="number" name="max_price" min="0" step="10000" placeholder="No max" inputmode="numeric">
+      </label>
+      <label>
+        <span>Beds</span>
+        <select name="beds">
+          <option value="">Any</option><option value="1">1+</option><option value="2">2+</option>
+          <option value="3">3+</option><option value="4">4+</option><option value="5">5+</option>
+        </select>
+      </label>
+      <label>
+        <span>Baths</span>
+        <select name="baths">
+          <option value="">Any</option><option value="1">1+</option><option value="2">2+</option><option value="3">3+</option>
+        </select>
+      </label>
+      <label>
+        <span>Sort</span>
+        <select name="sort">
+          <option value="newest">Newest</option>
+          <option value="price_asc">Price: low to high</option>
+          <option value="price_desc">Price: high to low</option>
+          <option value="ppsqm_asc">Lowest price per m²</option>
+          <option value="area_desc">Largest</option>
+        </select>
+      </label>
+      <div class="f-actions">
+        <button type="reset" class="btn ghost">Clear</button>
+      </div>
+    </form>
+
+    <div class="toolbar">
+      <p id="result-count" class="muted" aria-live="polite"></p>
+      <div class="seg" role="tablist" aria-label="View">
+        <button type="button" data-view="grid" class="active" role="tab" aria-selected="true">List</button>
+        <button type="button" data-view="map" role="tab" aria-selected="false">Map</button>
+      </div>
+    </div>
+
+    <p id="sample-note" class="note" hidden>
+      Showing demonstration listings. Connect real listing feeds through the import API to replace them.
+    </p>
+
+    <section id="map-view" class="map-view" hidden><div id="map"></div></section>
+    <section id="grid" class="grid" aria-label="Listings"></section>
+    <nav id="pager" class="pager" aria-label="Pagination"></nav>
+  </main>
+
+  <dialog id="detail" class="detail">
+    <button class="close" type="button" aria-label="Close">×</button>
+    <div id="detail-body"></div>
+  </dialog>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p class="muted" id="rates-note">Prices are converted to USD from each listing's local currency at current exchange rates and may differ from the seller's asking price on the day you buy.</p>
+    </div>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="/app.js"></script>
+</body>
+</html>

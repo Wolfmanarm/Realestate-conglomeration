@@ -82,7 +82,8 @@ app.post('/api/admin/refresh-rates', requireAdmin, wrap(async (req, res) => {
 
 app.post('/api/admin/import/reso', requireAdmin, wrap(async (req, res) => {
   const { syncReso } = require('./import-reso');
-  const r = await syncReso({ full: req.query.full === 'true' });
+  const mode = ['full', 'incremental'].includes(req.query.mode) ? req.query.mode : 'auto';
+  const r = await syncReso({ mode });
   res.json({ ...r, newest: r.newest || null });
 }));
 

@@ -57,6 +57,8 @@ CREATE TABLE IF NOT EXISTS import_runs (
   error            TEXT
 );
 CREATE INDEX IF NOT EXISTS import_runs_source_idx ON import_runs (source, started_at DESC);
+ALTER TABLE import_runs ADD COLUMN IF NOT EXISTS is_full BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE import_runs ADD COLUMN IF NOT EXISTS withdrawn INTEGER;
 `;
 
 async function migrate() {

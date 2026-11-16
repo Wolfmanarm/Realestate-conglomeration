@@ -16,7 +16,7 @@ const fixture = (name) => fs.readFileSync(path.join(__dirname, 'fixtures', name)
 
 function startFixtureServer() {
   const requests = [];
-  let throttled = false;
+  let throttled = false, expired = false, tokens = 0;
   const server = http.createServer((req, res) => {
     const base = `http://localhost:${server.address().port}/odata`;
     requests.push({ method: req.method, url: req.url, auth: req.headers.authorization });
@@ -27,11 +27,15 @@ function startFixtureServer() {
         const p = new URLSearchParams(body);
         const ok = p.get('grant_type') === 'client_credentials' && p.get('client_id') === 'id' && p.get('client_secret') === 'secret';
         res.writeHead(ok ? 200 : 401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(ok ? { access_token: 'tok-123', token_type: 'Bearer' } : { error: 'invalid_client' }));
+        if (ok) tokens++;
+        // First token "expires" before page 2; later tokens are valid.
+        res.end(JSON.stringify(ok ? { access_token: tokens === 1 ? 'tok-old' : 'tok-123', token_type: 'Bearer' } : { error: 'invalid_client' }));
       });
       return;
     }
-    if (req.headers.authorization !== 'Bearer tok-123') { res.writeHead(401); res.end(); return; }
+    const isPage2 = req.url.startsWith('/odata/Property?$skiptoken=page2');
+    if (req.headers.authorization === 'Bearer tok-old' && !isPage2) { /* old token still valid for page 1 */ }
+    else if (req.headers.authorization !== 'Bearer tok-123') { expired = true; res.writeHead(401); res.end(); return; }
     if (req.url.startsWith('/odata/Property?$skiptoken=page2')) {
       if (!throttled) { throttled = true; res.writeHead(429, { 'Retry-After': '0.01' }); res.end(); return; }
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -85,6 +89,13 @@ test('mapProperty maps RESO Data Dictionary fields', () => {
   assert.equal(b.country_code, 'US'); // default country
 });
 
+test('lease/rental records are never shown for sale', () => {
+  const cfg = reso.config({ RESO_BASE_URL: 'x', RESO_TOKEN: 't' });
+  const lease = JSON.parse(fixture('reso-page1.json')).value.find((v) => /Lease/.test(v.PropertyType));
+  assert.equal(reso.mapProperty(lease, cfg).status, 'withdrawn');
+  assert.equal(reso.mapStatus({ StandardStatus: 'Active', PropertyType: 'Commercial Lease' }), 'withdrawn');
+});
+
 test('mapStatus handles RESO StandardStatus values', () => {
   assert.equal(reso.mapStatus({ StandardStatus: 'Active' }), 'for_sale');
   assert.equal(reso.mapStatus({ StandardStatus: 'Active Under Contract' }), 'pending');
@@ -100,11 +111,11 @@ test('first page filters: full sync vs incremental', () => {
   assert.match(full, /\$filter=StandardStatus eq 'Active' and \(PropertyType eq 'Residential'\)/);
   assert.match(full, /\$orderby=ModificationTimestamp asc/);
   const inc = decodeURIComponent(new URL(reso.firstPageUrl(cfg, new Date('2026-11-01T00:00:00Z'))).search);
-  assert.match(inc, /ModificationTimestamp gt 2026-11-01T00:00:00.000Z/);
+  assert.match(inc, /ModificationTimestamp ge 2026-11-01T00:00:00.000Z/);
   assert.doesNotMatch(inc, /StandardStatus/); // incremental must see status changes
 });
 
-test('runResoImport pages through the feed with OAuth and retries 429', async () => {
+test('runResoImport pages with OAuth, refreshes an expired token and retries 429', async () => {
   const { server, requests } = await startFixtureServer();
   try {
     const batches = [];
@@ -115,17 +126,21 @@ test('runResoImport pages through the feed with OAuth and retries 429', async ()
       log: () => {},
     });
     assert.equal(r.pages, 2);
-    assert.equal(r.seen, 4);
-    assert.equal(r.upserted, 3);
+    assert.equal(r.seen, 5);
+    assert.equal(r.upserted, 4);
+    assert.equal(r.complete, true);
+    assert.deepEqual([...r.keys].sort(), ['3yd-ABC-1001', '3yd-ABC-1002', '3yd-ABC-1003', '3yd-ABC-1004', '3yd-ABC-1005']);
     assert.equal(r.rejected, 1); // 1004 has no ListPrice
     assert.equal(r.newest.toISOString(), '2026-11-14T19:45:00.000Z');
     const all = batches.flat();
-    assert.deepEqual(all.map((l) => l.status), ['for_sale', 'for_sale', 'sold']);
+    assert.deepEqual(all.map((l) => l.status), ['for_sale', 'for_sale', 'withdrawn', 'sold']); // lease never for_sale
     assert.ok(all.every((l) => l.source === 'test-mls' && !l.is_sample));
     assert.equal(all[0].listing_url, 'https://broker.test/l/3yd-ABC-1001');
     assert.equal(requests[0].url, '/oauth/token');
-    assert.ok(requests.slice(1).every((q) => q.auth === 'Bearer tok-123'));
-    assert.equal(requests.filter((q) => q.url.includes('skiptoken')).length, 2); // one 429 + retry
+    assert.equal(requests.filter((q) => q.url === '/oauth/token').length, 2); // re-issued after 401
+    // page 2: 401 (old token) -> new token -> 429 -> success
+    assert.deepEqual(requests.filter((q) => q.url.includes('skiptoken')).map((q) => q.auth),
+      ['Bearer tok-old', 'Bearer tok-123', 'Bearer tok-123']);
   } finally {
     server.close();
   }

@@ -27,8 +27,16 @@
       "OnMarketTimestamp": "2026-11-01T15:00:00Z",
       "ModificationTimestamp": "2026-11-10T12:00:00Z",
       "Media": [
-        { "MediaURL": "https://media.example-mls.test/1001/2.jpg", "Order": 2, "MediaCategory": "Photo" },
-        { "MediaURL": "https://media.example-mls.test/1001/1.jpg", "Order": 1, "MediaCategory": "Photo" }
+        {
+          "MediaURL": "https://media.example-mls.test/1001/2.jpg",
+          "Order": 2,
+          "MediaCategory": "Photo"
+        },
+        {
+          "MediaURL": "https://media.example-mls.test/1001/1.jpg",
+          "Order": 1,
+          "MediaCategory": "Photo"
+        }
       ]
     },
     {
@@ -48,6 +56,17 @@
       "Latitude": 43.61,
       "Longitude": -116.2,
       "ModificationTimestamp": "2026-11-12T08:30:00Z"
+    },
+    {
+      "ListingKey": "3yd-ABC-1005",
+      "StandardStatus": "Active",
+      "PropertyType": "Residential Lease",
+      "PropertySubType": "Apartment",
+      "ListPrice": 2800,
+      "BedroomsTotal": 2,
+      "City": "Boise",
+      "StateOrProvince": "ID",
+      "ModificationTimestamp": "2026-11-11T09:00:00Z"
     }
   ],
   "@odata.nextLink": "__BASE__/Property?$skiptoken=page2"

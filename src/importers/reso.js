@@ -72,7 +72,11 @@ function areaToSqm(value, units) {
   return v * SQFT_TO_SQM;
 }
 
+// Lease/rental records carry a monthly rent in ListPrice; never show them as homes for sale.
+const isLease = (p) => /lease|rental/i.test(`${p.PropertyType || ''} ${p.PropertySubType || ''}`);
+
 function mapStatus(p) {
+  if (isLease(p)) return 'withdrawn';
   const raw = String(p.StandardStatus || p.MlsStatus || '').toLowerCase().replace(/[^a-z]/g, '');
   return STATUS_MAP[raw] || 'withdrawn';
 }
@@ -170,7 +174,7 @@ async function getToken(cfg, fetchImpl) {
 }
 
 function firstPageUrl(cfg, since) {
-  const filters = [since ? `ModificationTimestamp gt ${since.toISOString()}` : "StandardStatus eq 'Active'"];
+  const filters = [since ? `ModificationTimestamp ge ${since.toISOString()}` : "StandardStatus eq 'Active'"];
   if (cfg.extraFilter) filters.push(`(${cfg.extraFilter})`);
   const q = new URLSearchParams({
     $filter: filters.join(' and '),
@@ -185,15 +189,23 @@ function firstPageUrl(cfg, since) {
 // Returns counts plus the newest ModificationTimestamp seen (for the next incremental run).
 async function runResoImport({ cfg = config(), since = null, upsert, normalize, fetchImpl = fetch, log = console.log, maxPages = 100000 }) {
   if (!isConfigured(cfg)) throw new Error('RESO importer is not configured (set RESO_BASE_URL and RESO_TOKEN or OAuth credentials).');
-  const token = await getToken(cfg, fetchImpl);
+  let token = await getToken(cfg, fetchImpl);
+  const canRefresh = !cfg.token; // OAuth tokens can be re-issued mid-run
   let url = firstPageUrl(cfg, since);
-  let pages = 0, seen = 0, upserted = 0, rejected = 0;
+  let pages = 0, seen = 0, upserted = 0, rejected = 0, refreshedFor = null;
+  const keys = new Set(); // every ListingKey seen, for withdrawing listings that left the feed
   let newest = since;
 
   while (url && pages < maxPages) {
     let res;
     for (let attempt = 1; ; attempt++) {
       res = await fetchImpl(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } });
+      if (res.status === 401 && canRefresh && refreshedFor !== url) {
+        refreshedFor = url; // token expired mid-run: get a new one and retry this page once
+        log('RESO token rejected, requesting a new one');
+        token = await getToken(cfg, fetchImpl);
+        continue;
+      }
       if (res.status !== 429 && res.status < 500) break;
       if (attempt >= 5) break;
       const wait = Number(res.headers.get('retry-after')) * 1000 || 2000 * attempt;
@@ -208,6 +220,8 @@ async function runResoImport({ cfg = config(), since = null, upsert, normalize, 
 
     const valid = [];
     for (const rec of records) {
+      const key = rec.ListingKey || rec.ListingId;
+      if (key) keys.add(String(key));
       const ts = rec.ModificationTimestamp ? new Date(rec.ModificationTimestamp) : null;
       if (ts && !Number.isNaN(ts.getTime()) && (!newest || ts > newest)) newest = ts;
       const { listing, errors } = normalize(mapProperty(rec, cfg));
@@ -218,7 +232,7 @@ async function runResoImport({ cfg = config(), since = null, upsert, normalize, 
     log(`RESO page ${pages}: ${records.length} records, ${valid.length} valid`);
     url = page['@odata.nextLink'] || null;
   }
-  return { pages, seen, upserted, rejected, newest };
+  return { pages, seen, upserted, rejected, newest, keys, complete: !url };
 }
 
 module.exports = { config, isConfigured, mapProperty, mapStatus, areaToSqm, firstPageUrl, runResoImport };

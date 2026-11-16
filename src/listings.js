@@ -80,8 +80,12 @@ async function upsertListings(listings, chunkSize = 500) {
       params
     );
     total += rowCount;
+    // Convert just this batch to USD (a whole-table pass per page would not scale to MLS feeds).
+    await pool.query(
+      `${CONVERT_SQL} AND (l.source, l.external_id) IN (SELECT * FROM unnest($1::text[], $2::text[]))`,
+      [chunk.map((l) => l.source), chunk.map((l) => l.external_id)]
+    );
   }
-  await pool.query(CONVERT_SQL);
   return total;
 }
 

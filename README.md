@@ -72,11 +72,14 @@ Set these variables on Railway:
 | `RESO_EXPAND_MEDIA` | `true` to fetch photos with `$expand=Media`, if your feed supports it |
 | `RESO_LISTING_URL_TEMPLATE` | e.g. `https://yourbrokerage.com/listing/{ListingKey}` |
 | `RESO_SYNC_MINUTES` | e.g. `60` to sync automatically from the web service |
+| `RESO_FULL_SYNC_HOURS` | How often auto mode runs a full sync (default `24`) |
 
-- The first run imports active listings.
-- Later runs fetch only records changed since the last successful run, so a listing that goes pending, sold or withdrawn drops off the site.
-- To run a sync by hand, use `npm run import:reso`, or `npm run import:reso -- --full` to re-pull everything.
-- You can also call `POST /api/admin/import/reso` or `POST /api/admin/import/reso?full=true`.
+- **Full sync:** pulls every active listing. Anything from that feed that's no longer in it is marked withdrawn, because many MLSs drop listings without sending a status change. If a full sync returns 0 records, nothing is withdrawn, so a bad filter or credential can't empty the site.
+- **Incremental sync:** fetches only records changed since the last run, so status changes take effect. A home that goes pending, sold or withdrawn leaves the site.
+- **Auto mode (the default):** runs a full sync if there hasn't been a successful one in `RESO_FULL_SYNC_HOURS` (default 24), otherwise an incremental one.
+- **Rentals:** lease records (`PropertyType` containing "Lease") are never shown, because their `ListPrice` is the monthly rent.
+- **Login tokens:** an expired OAuth token is renewed automatically during a long import.
+- **Manual runs:** `npm run import:reso`, with optional `-- --full` or `-- --incremental`. You can also call `POST /api/admin/import/reso?mode=full|incremental`.
 - Each run is logged in the `import_runs` table, which you can see at `GET /api/admin/import-runs`.
 
 ### 2. CSV or JSON files
